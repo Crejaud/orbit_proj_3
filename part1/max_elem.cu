@@ -85,7 +85,6 @@ int main()
 	free(h_max);
 	cudaFree(d_array);
 	cudaFree(d_max);
-	cudaFree(d_mutex);
 
   return 0;
 }
@@ -108,7 +107,7 @@ __global__ void find_maximum_kernel(double *arr, double *max, unsigned int N)
 
 	double temp = -1.0;
 	while(index + offset < N){
-		temp = maxf(temp, arr[index + offset]);
+		temp = max(temp, arr[index + offset]);
 
 		offset += stride;
 	}
