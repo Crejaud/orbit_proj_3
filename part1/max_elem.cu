@@ -8,7 +8,7 @@ using namespace std;
 
 mutex mtx;
 
-__global__ void find_maximum_kernel(float *array, float *max, unsigned int n);
+__global__ void find_maximum_kernel(double *array, double *max, unsigned int n);
 
 int main()
 {
@@ -21,17 +21,15 @@ int main()
 	cudaEvent_t cuda_start, cuda_stop;
   clock_t seq_start, seq_stop, seq_elapsed_time;
 
-  cout >> "Enter size of array: ";
-  cin << N;
+  cout << "Enter size of array: ";
+  cin >> N;
 
 	// allocate memory
 	h_array = (double*)malloc(N*sizeof(double));
 	h_max = (double*)malloc(sizeof(double));
 	cudaMalloc((void**)&d_array, N*sizeof(double));
 	cudaMalloc((void**)&d_max, sizeof(double));
-	cudaMalloc((void**)&d_mutex, sizeof(int));
 	cudaMemset(d_max, 0, sizeof(double));
-	cudaMemset(d_mutex, 0, sizeof(double));
 
 	// fill host array with data
 	for(unsigned int i=0;i<N;i++){
@@ -76,7 +74,7 @@ int main()
 	}
 
 	seq_stop = clock();
-	seq_elapsed_time = 1000*(cpu_stop - cpu_start)/CLOCKS_PER_SEC;
+	seq_elapsed_time = 1000*(seq_stop - seq_start)/CLOCKS_PER_SEC;
 
   cout << "----------------------------------------------------------" << endl;
   cout << "Max: " << *h_max << endl;
@@ -106,9 +104,9 @@ __global__ void find_maximum_kernel(double *arr, double *max, unsigned int N)
 	unsigned int stride = gridDim.x*blockDim.x;
 	unsigned int offset = 0;
 
-	__shared__ float cache[256];
+	__shared__ double cache[256];
 
-	float temp = -1.0;
+	double temp = -1.0;
 	while(index + offset < N){
 		temp = maxf(temp, arr[index + offset]);
 
@@ -123,7 +121,7 @@ __global__ void find_maximum_kernel(double *arr, double *max, unsigned int N)
 	unsigned int i = blockDim.x/2;
 	while(i != 0){
 		if(threadIdx.x < i){
-			cache[threadIdx.x] = maxf(cache[threadIdx.x], cache[threadIdx.x + i]);
+			cache[threadIdx.x] = max(cache[threadIdx.x], cache[threadIdx.x + i]);
 		}
 
 		__syncthreads();
@@ -132,7 +130,7 @@ __global__ void find_maximum_kernel(double *arr, double *max, unsigned int N)
 
 	if(threadIdx.x == 0){
 		mtx.lock();
-		*max = maxf(*max, cache[0]);
+		*max = max(*max, cache[0]);
 		mtx.unlock();
 	}
 }
