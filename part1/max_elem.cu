@@ -5,7 +5,8 @@
 
 using namespace std;
 
-__global__ void find_maximum_kernel(double *array, double *max, int *mtx, unsigned int n);
+void kernel_max_wrapper(double *arr, double *max, int *mtx, unsigned int N);
+__global__ void find_maximum_kernel(double *arr, double *max, int *mtx, unsigned int N);
 
 int main()
 {
@@ -56,7 +57,7 @@ int main()
 	cudaMemcpy(seq_max, cuda_max, sizeof(double), cudaMemcpyDeviceToHost);
 	cudaEventRecord(cuda_stop, 0);
 	cudaEventSynchronize(cuda_stop);
-	cudaEventElapsedTime(&cuda_elapsecuda_time, cuda_start, cuda_stop);
+	cudaEventElapsedTime(&cuda_elapsed_time, cuda_start, cuda_stop);
 
 	// destroy timers
 	cudaEventDestroy(cuda_start);
