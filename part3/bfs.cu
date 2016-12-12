@@ -240,5 +240,15 @@ void kernel_bfs_wrapper(int **matrix, int *result, int *mtx, unsigned int N, int
 
 __global__ void find_target_kernel(int **matrix, int *result, int *mtx, unsigned int N, int target, bool **visited_matrix)
 {
-  // do cuda stuff
+  int idx = threadIdx.x + blockDim.x + blockIdx.x;
+  int idy = threadIdx.y + blockDim.y + blockIdx.y;
+
+  if (idx >= N || idy >= N) {
+    return;
+  }
+
+  // found!!
+  if (matrix[idx][idy] == target) {
+    *result = matrix[idx][idy];
+  }
 }
