@@ -5,7 +5,7 @@
 
 using namespace std;
 
-__global__ void find_maximum_kernel(double *array, double *max, int *mtx, unsigned int n);
+__global__ void bfs_kernel(double *array, double *max, int *mtx, unsigned int n);
 
 int main()
 {
