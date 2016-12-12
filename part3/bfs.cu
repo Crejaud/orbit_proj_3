@@ -6,6 +6,10 @@
 
 using namespace std;
 
+int iterative_bfs(int **matrix, unsigned int N, int target, bool **visited_matrix);
+int recursive_bfs(int **matrix, unsigned int N, int target, bool **visited_matrix);
+int recursive_bfs_helper(int **matrix, unsigned int N, int target, int x, int y, bool **visited_matrix);
+
 void kernel_bfs_wrapper(int **matrix, int *result, int *mtx, unsigned int N, int target, bool **visited_matrix);
 __global__ void bfs_kernel(int **matrix, int *target, int *mtx, unsigned int N, int target, bool **visited_matrix);
 
@@ -160,8 +164,28 @@ int iterative_bfs(int **matrix, unsigned int N, int target, bool **visited_matri
     return matrix[0][0];
 
   visited_matrix[0][0] = true;
-
-  // now to rest
+  queue<int> qx = new queue<int>;
+  queue<int> qy = new queue<int>;
+  qx.push(0);
+  qy.push(0);
+  while (!qx.empty()) {
+    int x = qx.pop();
+    int y = qy.pop();
+    visited_matrix[x][y] = true;
+    if (matrix[x][y] == target) {
+      return matrix[x][y];
+    }
+    // check right then check down
+    if (x + 1 < N && !visited_matrix[x+1][y]) {
+      qx.push(x+1);
+      qy.push(y);
+    }
+    if (y + 1 < N && !visited_matrix[x][y+1]) {
+      qx.push(x);
+      qy.push(y+1);
+    }
+  }
+  return -1;
 }
 
 int recursive_bfs(int **matrix, unsigned int N, int target, bool **visited_matrix) {
@@ -177,10 +201,10 @@ int recursive_bfs(int **matrix, unsigned int N, int target, bool **visited_matri
 int recursive_bfs_helper(int **matrix, unsigned int N, int target, int x, int y, bool **visited_matrix) {
   // check right
   if (matrix[x+1][y] == target)
-  return matrix[x+1][y];
+    return matrix[x+1][y];
   // check down
   if (matrix[x][y+1] == target)
-  return matrix[x][y+1];
+    return matrix[x][y+1];
 
   // traverse to right first, then down
   int right = -1;
@@ -192,7 +216,7 @@ int recursive_bfs_helper(int **matrix, unsigned int N, int target, int x, int y,
   }
   // if found in right, then return right
   if (right != -1)
-  return right;
+    return right;
 
   if (y+1 < N && !visited_matrix[x][y+1]) {
     visited_matrix[x][y+1] = true;
@@ -200,7 +224,7 @@ int recursive_bfs_helper(int **matrix, unsigned int N, int target, int x, int y,
   }
   // if found in down, then return down
   if (down != -1)
-  return down;
+    return down;
 
   // otherwise, nothing has been found.
   return -1;
