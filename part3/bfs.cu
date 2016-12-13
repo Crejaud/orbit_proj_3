@@ -249,6 +249,8 @@ __global__ void find_target_kernel(int **matrix, int *result, int *mtx, unsigned
 
   // found!!
   if (matrix[idx][idy] == target) {
+    while(atomicCAS(mtx, 0, 1) != 0);
     *result = matrix[idx][idy];
+    atomicExch(mtx, 0);
   }
 }
