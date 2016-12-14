@@ -42,12 +42,12 @@ __global__ void generate_in_a_b(float *A, float a, float b, int nr_rows_A, int n
 __global__ void MatMulKernel(float* d_A, float* d_B, float* d_C, int height, int width) {
   __shared__ float Ads[WIDTH][HEIGHT];
   __shared__ float Bds[WIDTH];
-  __shared float partialSum[WIDTH][HEIGHT];
+  __shared__ float partialSum[WIDTH][HEIGHT];
 
   int tx = threadIdx.x, ty = threadIdx.y, bx = blockIdx.x;
 
   Ads[tx][ty] = d_A[tx * width + ty];
-  if (tx == 0) d_B[ty] = B[ty * width + bx];
+  if (tx == 0) Bds[ty] = d_B[ty * width + bx];
   __syncthreads();
 
   partialSum[tx][ty] = Ads[tx][ty] * Bds[ty];
