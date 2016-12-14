@@ -10,6 +10,8 @@
 using namespace std;
 
 #define MAX 100
+#define WIDTH 100
+#define HEIGHT 100
 
 int iDivUp(int a, int b) { return ((a % b) != 0) ? (a / b + 1) : (a / b); }
 
@@ -20,7 +22,7 @@ void GPU_fill_rand(float *A, int nr_rows_A, int nr_cols_A)
 
     curandSetPseudoRandomGeneratorSeed(prng, (unsigned long long) clock());
 
-    curandGenerateUniform(prng, A, nr_rows_A * nr_cols_A);
+    curandGenerateUniform(prng, A, HEIGHT * WIDTH);
 }
 
 __global__ void random(int* res) {
@@ -38,9 +40,9 @@ __global__ void generate_in_a_b(float *A, float a, float b, int nr_rows_A, int n
 }
 
 __global__ void MatMulKernel(float* d_A, float* d_B, float* d_C, int height, int width) {
-  __shared__ float Ads[width][height];
-  __shared__ float Bds[width];
-  __shared float partialSum[width][height];
+  __shared__ float Ads[WIDTH][HEIGTH];
+  __shared__ float Bds[WIDTH];
+  __shared float partialSum[WIDTH][HEIGHT];
 
   int tx = threadIdx.x, ty = threadIdx.y, bx = blockIdx.x;
 
@@ -57,7 +59,7 @@ __global__ void MatMulKernel(float* d_A, float* d_B, float* d_C, int height, int
 }
 
 void MatrixMultiplication(float *A, float *B, float *C, int height, int width) {
-  int size = width * height * sizeof(float);
+  int size = WIDTH * HEIGHT * sizeof(float);
   float *Ad, *Bd, *Cd;
 
   cudaMalloc((void**) &Ad, size);
@@ -68,10 +70,10 @@ void MatrixMultiplication(float *A, float *B, float *C, int height, int width) {
   cudaMalloc((void**)&Cd, size);
   cudaMemset(Cd, 0, size);
 
-  dim3 dimGrid(width,1,1);
-  dim3 dimBlock(width, height);
+  dim3 dimGrid(WIDTH,1,1);
+  dim3 dimBlock(WIDTH, HEIGHT);
 
-  MatMulKernel<<<dimGrid, dimBlock>>>(Ad, Bd, Cd, height, width);
+  MatMulKernel<<<dimGrid, dimBlock>>>(Ad, Bd, Cd, HEIGHT, WIDTH);
 
   cudaMemcpy(C, Cd, size, cudaMemcpyDeviceToHost);
   cudaFree(Ad);
@@ -114,13 +116,13 @@ int main(void)
     GPU_fill_rand(devTwo_Mat, h, w);
 
     dim3 threads(32);
-    dim3 blocks(iDivUp(h*w, 32));
+    dim3 blocks(iDivUp(HEIGHT*WIDTH, 32));
 
     float a = 3.f;
     float b = 7.f;
 
-    generate_in_a_b<<<blocks,threads>>>(dev_Mat,a,b,h,w);
-    generate_in_a_b<<<blocks,threads>>>(devTwo_Mat,a,b,h,w);
+    generate_in_a_b<<<blocks,threads>>>(dev_Mat,a,b,HEIGHT,WIDTH);
+    generate_in_a_b<<<blocks,threads>>>(devTwo_Mat,a,b,HEIGHT,WIDTH);
 
     cudaMemcpy(hst_Mat, dev_Mat, mSize, cudaMemcpyDeviceToHost) ;
     cudaMemcpy(another_Mat, devTwo_Mat, mSize, cudaMemcpyDeviceToHost);
