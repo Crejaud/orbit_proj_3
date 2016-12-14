@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include <helper_cuda.h>
 
 using namespace std;
 
@@ -27,7 +26,7 @@ void GPU_fill_rand(float *A, int nr_rows_A, int nr_cols_A)
 __global__ void random(int* res) {
   curandState_t state;
   curand_init(0, 0, 0, &state);
-  *result = curand(&state) % MAX;
+  *res = curand(&state) % MAX;
 }
 
 __global__ void generate_in_a_b(float *A, float a, float b, int nr_rows_A, int nr_cols_A) {
