@@ -63,7 +63,7 @@ void MatrixMultiplication(float* A, float* B, float* C, int height, int width) {
   float *Ad, *Bd, *Cd;
 
   cudaMalloc((void**) &Ad, size);
-  cudaMalloc(Ad, A, size, cudaMemcpyHostToDevice);
+  cudaMemcpy(Ad, A, size, cudaMemcpyHostToDevice);
   cudaMalloc((void**) &Bd, size);
   cudaMemcpy(Bd, B, size, cudaMemcpyHostToDevice);
 
