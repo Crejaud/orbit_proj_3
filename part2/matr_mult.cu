@@ -64,10 +64,10 @@ void MatrixMultiplication(float *A, float *B, float *C, int height, int width) {
 
   cudaMalloc((void**) &Ad, size);
   cudaMalloc(Ad, A, size, cudaMemcpyHostToDevice);
-  cudaMalloc((void**)*Bd, size);
+  cudaMalloc((void**) &Bd, size);
   cudaMemcpy(Bd, B, size, cudaMemcpyHostToDevice);
 
-  cudaMalloc((void**)&Cd, size);
+  cudaMalloc((void**) &Cd, size);
   cudaMemset(Cd, 0, size);
 
   dim3 dimGrid(WIDTH,1,1);
