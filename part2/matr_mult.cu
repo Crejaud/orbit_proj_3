@@ -1,6 +1,6 @@
 #include <curand.h>
 #include <curand_kernel.h>
-#include <conio.h>
+#include <curses.h>
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
