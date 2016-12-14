@@ -1,5 +1,5 @@
-objects= max_elem.o kernels.o
-NVCC= nvcc
+objects= bfs.o
+NVCC= /usr/local/cuda-8.0/bin/nvcc
 opt= -O2 -g -G
 ARCH= -arch=sm_30
 LIBS=
