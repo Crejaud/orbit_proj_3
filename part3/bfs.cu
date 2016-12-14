@@ -51,7 +51,7 @@ int main()
     }
   }
   cout << "random numbers generated" << endl;
-
+/*
   // allocate memory for cuda
   cudaMalloc((void**)&cuda_matrix, N * sizeof(short*));
   for (unsigned long long i = 0; i < N; i++) {
@@ -84,7 +84,7 @@ int main()
   cudaEventSynchronize(cuda_stop);
   cudaEventElapsedTime(&cuda_elapsed_time, cuda_start, cuda_stop);
   cudaMemcpy(seq_result, cuda_result, sizeof(short), cudaMemcpyDeviceToHost);
-  
+
   // destroy timers
   cudaEventDestroy(cuda_start);
   cudaEventDestroy(cuda_stop);
@@ -95,7 +95,7 @@ int main()
   cout << "----------------------------------------------------------" << endl;
 
   cout << endl;
-
+*/
   cout << "Starting sequential iterative approach." << endl;
 
   // reset visited_matrix back to false
