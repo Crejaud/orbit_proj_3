@@ -40,7 +40,7 @@ __global__ void generate_in_a_b(float *A, float a, float b, int nr_rows_A, int n
 }
 
 __global__ void MatMulKernel(float* d_A, float* d_B, float* d_C, int height, int width) {
-  __shared__ float Ads[WIDTH][HEIGTH];
+  __shared__ float Ads[WIDTH][HEIGHT];
   __shared__ float Bds[WIDTH];
   __shared float partialSum[WIDTH][HEIGHT];
 
