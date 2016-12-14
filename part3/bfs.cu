@@ -206,10 +206,10 @@ short recursive_bfs(short **matrix, unsigned long long N, short target, bool **v
 
 short recursive_bfs_helper(short **matrix, unsigned long long N, short target, unsigned long long x, unsigned long long y, bool **visited_matrix) {
   // check right
-  if (matrix[x+1][y] == target)
+  if (x+1 < N && matrix[x+1][y] == target)
     return matrix[x+1][y];
   // check down
-  if (matrix[x][y+1] == target)
+  if (y+1 < N && matrix[x][y+1] == target)
     return matrix[x][y+1];
 
   // traverse to right first, then down
