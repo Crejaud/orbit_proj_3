@@ -58,7 +58,7 @@ __global__ void MatMulKernel(float* d_A, float* d_B, float* d_C, int height, int
   if (ty == 0) d_C[tx * width + bx] = (partialSum[tx][ty] + partialSum[tx][ty + 1]);
 }
 
-void MatrixMultiplication(float *A, float *B, float *C, int height, int width) {
+void MatrixMultiplication(float* A, float* B, float* C, int height, int width) {
   int size = WIDTH * HEIGHT * sizeof(float);
   float *Ad, *Bd, *Cd;
 
@@ -147,7 +147,7 @@ int main(void)
     cudaFree(dev_Mat) ;
     cudaFree(devTwo_Mat);
 
-    system("pause") ;
+    //system("pause") ;
 
     return 0;
 }
