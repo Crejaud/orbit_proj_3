@@ -28,7 +28,7 @@ int main()
   // Declare timers
   float cuda_elapsed_time;
   cudaEvent_t cuda_start, cuda_stop;
-  clock_t seq_start, seq_stop, seq_iter_elapsed_time, seq_recur_elapsed_time;
+  double seq_start, seq_stop, seq_iter_elapsed_time, seq_recur_elapsed_time;
 
   cout << "Enter N (NxN matrix): ";
   cin >> N;
@@ -105,14 +105,14 @@ int main()
     }
   }
 
-  seq_start = clock();
+  seq_start = (double) clock();
 
   // call iterative bfs
   *seq_result = -1;
   *seq_result = iterative_bfs(seq_matrix, N, target, visited_matrix);
 
-  seq_stop = clock();
-  seq_iter_elapsed_time = 1000*(seq_stop - seq_start)/CLOCKS_PER_SEC;
+  seq_stop = (double) clock();
+  seq_iter_elapsed_time = (double) 1000.0*((double)(seq_stop - seq_start))/CLOCKS_PER_SEC;
 
   cout << "----------------------------------------------------------" << endl;
   cout << "Found: " << *seq_result << endl;
@@ -128,14 +128,14 @@ int main()
     }
   }
 
-  seq_start = clock();
+  seq_start = (double) clock();
 
   // call recursive bfs
   *seq_result = -1;
   *seq_result = recursive_bfs(seq_matrix, N, target, visited_matrix);
 
-  seq_stop = clock();
-  seq_recur_elapsed_time = 1000*(seq_stop - seq_start)/CLOCKS_PER_SEC;
+  seq_stop = (double) clock();
+  seq_recur_elapsed_time = (double) 1000.0*((double)(seq_stop - seq_start))/CLOCKS_PER_SEC;
 
   cout << "----------------------------------------------------------" << endl;
   cout << "Found: " << *seq_result << endl;
