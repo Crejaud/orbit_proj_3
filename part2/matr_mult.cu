@@ -113,7 +113,7 @@ int main()
   int spb = sizeC + (BLOCK_MAX_THREADS - 1);
   int numBlocks = spb / BLOCK_MAX_THREADS;
   cudaEventRecord(cuda_start, 0);
-  MatrixMultKernel<<<numBlocks, BLOCK_MAX_THREADS>>>(dmA, dmB, dmaC, rowsA, columnsB, columnsA);
+  MatrixMultKernel<<<numBlocks, BLOCK_MAX_THREADS>>>(dmA, dmB, dmC, rowsA, columnsB, columnsA);
   cudaEventRecord(cuda_stop, 0);
   cudaMemcpy(matrixC, dmC, sizeof(float)*sizeC, cudaMemcpyDeviceToHost);
   cout<<"Printing result: \n";
