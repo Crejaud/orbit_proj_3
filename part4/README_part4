@@ -1,0 +1,10 @@
+To compile and generate a file with output name OUTPUT_NAME.o run the following:
+nvcc group19_part4.cu -o OUTPUT_NAME.o
+
+To run on an NVIDIA device simply execute
+./OUTPUT_NAME.o
+
+This code generates 3 txt files
+Adata.txt - contains the random generated elements, 1 per line
+Bdata.txt - contains the index of an element from A that is followed by a duplicate of itself, 1 per line
+Cdata.txt - contains the elements from A with duplicates remove, 1 per line
