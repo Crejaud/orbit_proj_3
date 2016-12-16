@@ -6,7 +6,7 @@ LIBS=
 execname= matr_mult
 
 $(execname): $(objects)
-	$(NVCC) $(opt) -o $(execname) $(objects) $(LIBS)
+	$(NVCC) $(opt) -o $(execname) $(objects) $(LIBS) -lcurand
 
 matr_mult.o: matr_mult.cu
 	$(NVCC) $(opt) $(ARCH) -std=c++11 -c matr_mult.cu

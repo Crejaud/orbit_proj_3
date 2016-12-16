@@ -9,9 +9,9 @@
 
 using namespace std;
 
-#define MAX 100
-#define WIDTH 100
-#define HEIGHT 100
+#define MAX 5
+#define WIDTH 5
+#define HEIGHT 5
 
 int iDivUp(int a, int b) { return ((a % b) != 0) ? (a / b + 1) : (a / b); }
 
@@ -146,6 +146,8 @@ int main(void)
     free(hostP);
     cudaFree(dev_Mat) ;
     cudaFree(devTwo_Mat);
+    cudaFree(Height);
+    cudaFree(Width);
 
     //system("pause") ;
 
