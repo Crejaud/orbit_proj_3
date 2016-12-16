@@ -2,7 +2,7 @@
 #include <cublas_v2.h>
 using std::cout;
 
-int MAX_THREADS_PER_BLOCK = 512;
+int BLOCK_MAX_THREADS = 512;
 
 double random(float start, float end)
 {
@@ -82,13 +82,13 @@ int main()
   createArrayWithRandomValues(matrixA, sizeA);
   createArrayWithRandomValues(matrixB, sizeb);
   cout<<"Matrix A: \n";
-  for(int i=0; i<size1; i++)
+  for(int i=0; i<sizeA; i++)
   {
     cout<<matrixA[i]<<" ";
   }
   cout<<"\n";
   cout<<"Matrix B: \n";
-  for(int i=0; i<size2; i++)
+  for(int i=0; i<sizeB; i++)
   {
     cout<<matrixB[i]<<" ";
   }
@@ -97,18 +97,19 @@ int main()
   float* dmatrixB;
   float* dmatrixC;
 
-  cudaMalloc((void**) &dmatrixA, sizeof(float)*size1);
-  cudaMemcpy(dmatrixA, matrixA, sizeof(float)*size1, cudaMemcpyHostToDevice);
-  cudaMalloc((void**) &dmatrixB, sizeof(float)*size2);
-  cudaMemcpy(dmatrixB, matrixB, sizeof(float)*size2, cudaMemcpyHostToDevice);
-  cudaMalloc((void**) &dmatrixC, sizeof(float)*size3);
-  cudaMemcpy(dmatrixC, matrixC, sizeof(float)*size3, cudaMemcpyHostToDevice);
+  cudaMalloc((void**) &dmatrixA, sizeof(float)*sizeA);
+  cudaMemcpy(dmatrixA, matrixA, sizeof(float)*sizeA, cudaMemcpyHostToDevice);
+  cudaMalloc((void**) &dmatrixB, sizeof(float)*sizeB);
+  cudaMemcpy(dmatrixB, matrixB, sizeof(float)*sizeB, cudaMemcpyHostToDevice);
+  cudaMalloc((void**) &dmatrixC, sizeof(float)*sizeC);
+  cudaMemcpy(dmatrixC, matrixC, sizeof(float)*sizeC, cudaMemcpyHostToDevice);
 
-  int numBlocks = (size3 + (MAX_THREADS_PER_BLOCK - 1)) / MAX_THREADS_PER_BLOCK;
-  MatrixMultKernel<<<numBlocks, MAX_THREADS_PER_BLOCK>>>(dmatrixA, dmatrixB, dmatrixC, rows1, columns2, columns1);
-  cudaMemcpy(matrixC, dmatrixC, sizeof(float)*size3, cudaMemcpyDeviceToHost);
+  int spb = sizeC + (BLOCK_MAX_THREADS - 1);
+  int numBlocks = spb / BLOCK_MAX_THREADS;
+  MatrixMultKernel<<<numBlocks, BLOCK_MAX_THREADS>>(dmatrixA, dmatrixB, dmatrixC, rowsA, columnsB, columnsA);
+  cudaMemcpy(matrixC, dmatrixC, sizeof(float)*sizeC, cudaMemcpyDeviceToHost);
   cout<<"Printing result: \n";
-  for(int i=0; i<size3; i++)
+  for(int i=0; i<sizeC; i++)
   {
     cout<<matrixC[i]<<" ";
   }
@@ -125,33 +126,33 @@ int main()
   float* mmatrixB;
   float* mmatrixC;
 
-  float* resultMatrix = new float[size3];
+  float* resultMatrix = new float[sizeC];
 
-  cudaMalloc((void**) &mmatrixA, sizeof(float)*size1);
-  cudaMemcpy(mmatrixA, matrixA, sizeof(float)*size1, cudaMemcpyHostToDevice);
+  cudaMalloc((void**) &mmatrixA, sizeof(float)*sizeA);
+  cudaMemcpy(mmatrixA, matrixA, sizeof(float)*sizeA, cudaMemcpyHostToDevice);
 
-  cudaMalloc((void**) &mmatrixB, sizeof(float)*size2);
-  cudaMemcpy(mmatrixB, matrixB, sizeof(float)*size2, cudaMemcpyHostToDevice);
+  cudaMalloc((void**) &mmatrixB, sizeof(float)*sizeB);
+  cudaMemcpy(mmatrixB, matrixB, sizeof(float)*sizeB, cudaMemcpyHostToDevice);
 
-  cudaMalloc((void**) &mmatrixC, sizeof(float)*size3);
-  cudaMemcpy(mmatrixC, resultMatrix, sizeof(float)*size3, cudaMemcpyHostToDevice);
+  cudaMalloc((void**) &mmatrixC, sizeof(float)*sizeC);
+  cudaMemcpy(mmatrixC, resultMatrix, sizeof(float)*sizeC, cudaMemcpyHostToDevice);
 
-   gpu_blas_mmul(mmatrixA, mmatrixB, mmatrixC, columns2, columns1, columns2);
+   gpu_blas_mmul(mmatrixA, mmatrixB, mmatrixC, columnsB, columnsA, columnsB);
 
-   cudaMemcpy(resultMatrix, mmatrixC ,sizeof(float)*size3,cudaMemcpyDeviceToHost);
+   cudaMemcpy(resultMatrix, mmatrixC ,sizeof(float)*sizeC,cudaMemcpyDeviceToHost);
 
    cout<<"Printing cuBLAS result: \n";
-   for(int i=0; i<size3; i++)
+   for(int i=0; i<sizeC; i++)
    {
      cout<<resultMatrix[i]<<" ";
    }
    cout<<"\n";
 
    float mse = 0.0;
-   for (int i = 0; i < size3; ++i) {
+   for (int i = 0; i < sizeC; ++i) {
      mse += pow(resultMatrix[i] - matrixC[i], 2);
    }
-   mse /= size3;
+   mse /= sizeC;
 
    cout << "cuBLAS MSE: " << mse << std::endl;
 
