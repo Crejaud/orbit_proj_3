@@ -73,14 +73,14 @@ int main()
   int rowsB  = 2;
   int columnsB = 4;
   int sizeB = rowsB*columnsB;
-  int sizeC = rowsA*columnsC;
+  int sizeC = rowsA*columnsB;
 
   float* matrixA = new float[sizeA];
   float* matrixB = new float[sizeB];
   float* matrixC = new float[sizeC];
 
   createArrayWithRandomValues(matrixA, sizeA);
-  createArrayWithRandomValues(matrixB, sizeb);
+  createArrayWithRandomValues(matrixB, sizeB);
   cout<<"Matrix A: \n";
   for(int i=0; i<sizeA; i++)
   {
