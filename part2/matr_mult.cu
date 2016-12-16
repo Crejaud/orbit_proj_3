@@ -106,7 +106,7 @@ int main()
 
   int spb = sizeC + (BLOCK_MAX_THREADS - 1);
   int numBlocks = spb / BLOCK_MAX_THREADS;
-  MatrixMultKernel<<<numBlocks, BLOCK_MAX_THREADS>>(dmatrixA, dmatrixB, dmatrixC, rowsA, columnsB, columnsA);
+  MatrixMultKernel<<<numBlocks, BLOCK_MAX_THREADS>>>(dmatrixA, dmatrixB, dmatrixC, rowsA, columnsB, columnsA);
   cudaMemcpy(matrixC, dmatrixC, sizeof(float)*sizeC, cudaMemcpyDeviceToHost);
   cout<<"Printing result: \n";
   for(int i=0; i<sizeC; i++)
