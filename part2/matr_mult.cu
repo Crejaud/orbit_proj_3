@@ -1,155 +1,167 @@
-#include <curand.h>
-#include <curand_kernel.h>
-#include <curses.h>
 #include <iostream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
+#include <cublas_v2.h>
+using std::cout;
 
-using namespace std;
+int MAX_THREADS_PER_BLOCK = 512;
 
-#define MAX 5
-#define WIDTH 5
-#define HEIGHT 5
-
-int iDivUp(int a, int b) { return ((a % b) != 0) ? (a / b + 1) : (a / b); }
-
-void GPU_fill_rand(float *A, int nr_rows_A, int nr_cols_A)
+double random(float start, float end)
 {
-    curandGenerator_t prng;
-    curandCreateGenerator(&prng, CURAND_RNG_PSEUDO_XORWOW);
-
-    curandSetPseudoRandomGeneratorSeed(prng, (unsigned long long) clock());
-
-    curandGenerateUniform(prng, A, HEIGHT * WIDTH);
+    float random = ((float) rand()) / (float) RAND_MAX;
+    float r = random * (end - start);
+    return start + r;
 }
 
-__global__ void random(int* res) {
-  curandState_t state;
-  curand_init(0, 0, 0, &state);
-  *res = curand(&state) % MAX;
-}
-
-__global__ void generate_in_a_b(float *A, float a, float b, int nr_rows_A, int nr_cols_A) {
-
-    int tid = threadIdx.x + blockIdx.x * blockDim.x;
-
-    if (tid < nr_rows_A*nr_cols_A) A[tid] = (b-a) * A[tid] + a;
-
-}
-
-__global__ void MatMulKernel(float* d_A, float* d_B, float* d_C, int height, int width) {
-  __shared__ float Ads[WIDTH][HEIGHT];
-  __shared__ float Bds[WIDTH];
-  __shared__ float partialSum[WIDTH][HEIGHT];
-
-  int tx = threadIdx.x, ty = threadIdx.y, bx = blockIdx.x;
-
-  Ads[tx][ty] = d_A[tx * width + ty];
-  if (tx == 0) Bds[ty] = d_B[ty * width + bx];
-  __syncthreads();
-
-  partialSum[tx][ty] = Ads[tx][ty] * Bds[ty];
-  __syncthreads();
-
-  if (ty < 4) partialSum[tx][ty] += partialSum[tx][ty + 4];
-  if (ty < 2) partialSum[tx][ty] += partialSum[tx][ty + 2];
-  if (ty == 0) d_C[tx * width + bx] = (partialSum[tx][ty] + partialSum[tx][ty + 1]);
-}
-
-void MatrixMultiplication(float* A, float* B, float* C, int height, int width) {
-  int size = WIDTH * HEIGHT * sizeof(float);
-  float *Ad, *Bd, *Cd;
-
-  cudaMalloc((void**) &Ad, size);
-  cudaMemcpy(Ad, A, size, cudaMemcpyHostToDevice);
-  cudaMalloc((void**) &Bd, size);
-  cudaMemcpy(Bd, B, size, cudaMemcpyHostToDevice);
-
-  cudaMalloc((void**) &Cd, size);
-  cudaMemset(Cd, 0, size);
-
-  dim3 dimGrid(WIDTH,1,1);
-  dim3 dimBlock(WIDTH, HEIGHT);
-
-  MatMulKernel<<<dimGrid, dimBlock>>>(Ad, Bd, Cd, HEIGHT, WIDTH);
-
-  cudaMemcpy(C, Cd, size, cudaMemcpyDeviceToHost);
-  cudaFree(Ad);
-  cudaFree(Bd);
-  cudaFree(Cd);
-}
-
-
-int main(void)
+void createArrayWithRandomValues(float* inputArray, int size)
 {
-    float   *hst_Mat , *dev_Mat, *another_Mat, *devTwo_Mat;
+  srand(time(NULL));
+  int i = 0;
+  while(i<size)
+  {
+    inputArray[i] = random(0,10);
+    i++;
+  }
+}
 
-    int* Height;
-    int* Width;
-    cudaMalloc((void**) &Height, sizeof(int));
-    cudaMalloc((void**) &Width, sizeof(int));
-    random<<<1,1>>>(Height);
-    random<<<1,1>>>(Width);
-    int h;
-    int w;
-    cudaMemcpy(&h, Height, sizeof(int), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&w, Width, sizeof(int), cudaMemcpyDeviceToHost);
-    int vSize = h*w;
-    int mSize = sizeof(float)*vSize ;
-
-
-    hst_Mat = (float *)malloc(mSize) ;
-    cudaMalloc((void**)&dev_Mat, mSize) ;
-
-    another_Mat = (float *)malloc(mSize);
-    cudaMalloc((void**)&devTwo_Mat, mSize);
-
-    memset(hst_Mat, 0, mSize) ;
-    cudaMemset(dev_Mat, 0, mSize) ;
-
-    memset(another_Mat, 0, mSize);
-    cudaMemset(devTwo_Mat, 0, mSize);
-
-    GPU_fill_rand(dev_Mat, h, w) ;
-    GPU_fill_rand(devTwo_Mat, h, w);
-
-    dim3 threads(32);
-    dim3 blocks(iDivUp(HEIGHT*WIDTH, 32));
-
-    float a = 3.f;
-    float b = 7.f;
-
-    generate_in_a_b<<<blocks,threads>>>(dev_Mat,a,b,HEIGHT,WIDTH);
-    generate_in_a_b<<<blocks,threads>>>(devTwo_Mat,a,b,HEIGHT,WIDTH);
-
-    cudaMemcpy(hst_Mat, dev_Mat, mSize, cudaMemcpyDeviceToHost) ;
-    cudaMemcpy(another_Mat, devTwo_Mat, mSize, cudaMemcpyDeviceToHost);
-
-    unsigned int mem_size_P = vSize * sizeof(float);
-    float* hostP = (float*) malloc(mem_size_P);
-    MatrixMultiplication(hst_Mat, another_Mat, hostP, h, w);
-    /*
-    cout << " * Result matrix : " << endl << "     " ;
-    for(int i=0 ;i<h ; i++)
+__global__ void
+MatrixMultKernel(float* d_A, float* d_B, float* d_C, int rowsA, int columnsB, int denom)
+{
+  int index = threadIdx.x + blockIdx.x * blockDim.x;
+  int size = rowsA * columnsB;
+  if(index  < size)
+  {
+    float dotProduct = 0;
+    int rowIndex = index / columnsB; //which row of A
+    int columnIndex = index % columnsB; //which column of B
+    int rowIndexA = rowIndex * denom;
+    for(int i=0; i<denom; i++)
     {
-        for(int j=0 ; j<w ; j++)
-            cout << "   " << hst_Mat[i*Width+j] ;
-            cout << endl << "     " ;
+      float row = d_A[rowIndexA+i];
+      float column = d_B[columnIndex + (columnsB * i)];
+      int prod = row * column;
+      dotProduct = dotProduct + prod;
     }
-    cout << endl << endl ;
-    */
+    d_C[index] = dotProduct;
+  }
+  __syncthreads();
+}
 
-    free(hst_Mat) ;
-    free(another_Mat);
-    free(hostP);
-    cudaFree(dev_Mat) ;
-    cudaFree(devTwo_Mat);
-    cudaFree(Height);
-    cudaFree(Width);
 
-    //system("pause") ;
+void gpu_blas_mmul(const float *A, const float *B, float *C, const int m, const int k, const int n)
+{
+  int lda=m,ldb=k,ldc=m;
+  const float alf = 1;
+  const float bet = 0;
+  const float *alpha = &alf;
+  const float *beta = &bet;
 
-    return 0;
+  // Create a handle for CUBLAS
+   cublasHandle_t handle;
+   cublasCreate(&handle);
+
+    // Do the actual multiplication
+   cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, m, n, k, alpha, B, lda, A, ldb, beta, C, ldc);
+
+  // Destroy the handle
+ cublasDestroy(handle);
+}
+
+int main()
+{
+  int rowsA = 3;
+  int columnsA = 2;
+  int sizeA = rows1*columns1;
+  int rowsB  = 2;
+  int columnsB = 4;
+  int sizeB = rows2*columns2;
+  int sizeC = rows1*columns2;
+
+  float* matrixA = new float[sizeA];
+  float* matrixB = new float[sizeB];
+  float* matrixC = new float[sizeC];
+
+  createArrayWithRandomValues(matrixA, sizeA);
+  createArrayWithRandomValues(matrixB, sizeb);
+  cout<<"Matrix A: \n";
+  for(int i=0; i<size1; i++)
+  {
+    cout<<matrixA[i]<<" ";
+  }
+  cout<<"\n";
+  cout<<"Matrix B: \n";
+  for(int i=0; i<size2; i++)
+  {
+    cout<<matrixB[i]<<" ";
+  }
+  cout<<"\n";
+  float* dmatrixA;
+  float* dmatrixB;
+  float* dmatrixC;
+
+  cudaMalloc((void**) &dmatrixA, sizeof(float)*size1);
+  cudaMemcpy(dmatrixA, matrixA, sizeof(float)*size1, cudaMemcpyHostToDevice);
+  cudaMalloc((void**) &dmatrixB, sizeof(float)*size2);
+  cudaMemcpy(dmatrixB, matrixB, sizeof(float)*size2, cudaMemcpyHostToDevice);
+  cudaMalloc((void**) &dmatrixC, sizeof(float)*size3);
+  cudaMemcpy(dmatrixC, matrixC, sizeof(float)*size3, cudaMemcpyHostToDevice);
+
+  int numBlocks = (size3 + (MAX_THREADS_PER_BLOCK - 1)) / MAX_THREADS_PER_BLOCK;
+  MatrixMultKernel<<<numBlocks, MAX_THREADS_PER_BLOCK>>>(dmatrixA, dmatrixB, dmatrixC, rows1, columns2, columns1);
+  cudaMemcpy(matrixC, dmatrixC, sizeof(float)*size3, cudaMemcpyDeviceToHost);
+  cout<<"Printing result: \n";
+  for(int i=0; i<size3; i++)
+  {
+    cout<<matrixC[i]<<" ";
+  }
+  cout<<"\n\n";
+
+  cudaFree(dmatrixA);
+  cudaFree(dmatrixB);
+  cudaFree(dmatrixC);
+
+
+  //CUBLAS PART
+  //pointers for cublas
+  float* mmatrixA;
+  float* mmatrixB;
+  float* mmatrixC;
+
+  float* resultMatrix = new float[size3];
+
+  cudaMalloc((void**) &mmatrixA, sizeof(float)*size1);
+  cudaMemcpy(mmatrixA, matrixA, sizeof(float)*size1, cudaMemcpyHostToDevice);
+
+  cudaMalloc((void**) &mmatrixB, sizeof(float)*size2);
+  cudaMemcpy(mmatrixB, matrixB, sizeof(float)*size2, cudaMemcpyHostToDevice);
+
+  cudaMalloc((void**) &mmatrixC, sizeof(float)*size3);
+  cudaMemcpy(mmatrixC, resultMatrix, sizeof(float)*size3, cudaMemcpyHostToDevice);
+
+   gpu_blas_mmul(mmatrixA, mmatrixB, mmatrixC, columns2, columns1, columns2);
+
+   cudaMemcpy(resultMatrix, mmatrixC ,sizeof(float)*size3,cudaMemcpyDeviceToHost);
+
+   cout<<"Printing cuBLAS result: \n";
+   for(int i=0; i<size3; i++)
+   {
+     cout<<resultMatrix[i]<<" ";
+   }
+   cout<<"\n";
+
+   float mse = 0.0;
+   for (int i = 0; i < size3; ++i) {
+     mse += pow(resultMatrix[i] - matrixC[i], 2);
+   }
+   mse /= size3;
+
+   cout << "cuBLAS MSE: " << mse << std::endl;
+
+  free(matrixA);
+  free(matrixB);
+  free(matrixC);
+  free(resultMatrix);
+
+  cudaFree(mmatrixA);
+  cudaFree(mmatrixB);
+  cudaFree(mmatrixC);
+  return 0;
 }
