@@ -48,25 +48,28 @@ MatrixMultKernel(float* d_A, float* d_B, float* d_C, int rowsA, int columnsB, in
 
 void gpu_blas_mmul(const float *A, const float *B, float *C, const int m, const int k, const int n)
 {
-  int lda=m,ldb=k,ldc=m;
-  const float alf = 1;
-  const float bet = 0;
-  const float *alpha = &alf;
-  const float *beta = &bet;
+   int lda=m,ldb=k,ldc=m;
+   const float alf = 1;
+   const float bet = 0;
+   const float *alpha = &alf;
+   const float *beta = &bet;
 
-  // Create a handle for CUBLAS
    cublasHandle_t handle;
    cublasCreate(&handle);
-
-    // Do the actual multiplication
    cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, m, n, k, alpha, B, lda, A, ldb, beta, C, ldc);
-
-  // Destroy the handle
- cublasDestroy(handle);
+   cublasDestroy(handle);
 }
 
 int main()
 {
+
+  float cuda_elapsed_time, cuda_elapsed_time2;
+	cudaEvent_t cuda_start, cuda_start2, cuda_stop, cuda_stop2;
+	cudaEventCreate(&cuda_start);
+	cudaEventCreate(&cuda_stop);
+  cudaEventCreate(&cuda_start2);
+  cudaEventCreate(&cuda_stop2);
+
   int rowsA = 3;
   int columnsA = 2;
   int sizeA = rowsA*columnsA;
@@ -74,6 +77,8 @@ int main()
   int columnsB = 4;
   int sizeB = rowsB*columnsB;
   int sizeC = rowsA*columnsB;
+
+
 
   float* matrixA = new float[sizeA];
   float* matrixB = new float[sizeB];
@@ -93,21 +98,24 @@ int main()
     cout<<matrixB[i]<<" ";
   }
   cout<<"\n";
-  float* dmatrixA;
-  float* dmatrixB;
-  float* dmatrixC;
 
-  cudaMalloc((void**) &dmatrixA, sizeof(float)*sizeA);
-  cudaMemcpy(dmatrixA, matrixA, sizeof(float)*sizeA, cudaMemcpyHostToDevice);
-  cudaMalloc((void**) &dmatrixB, sizeof(float)*sizeB);
-  cudaMemcpy(dmatrixB, matrixB, sizeof(float)*sizeB, cudaMemcpyHostToDevice);
-  cudaMalloc((void**) &dmatrixC, sizeof(float)*sizeC);
-  cudaMemcpy(dmatrixC, matrixC, sizeof(float)*sizeC, cudaMemcpyHostToDevice);
+  float* dmA;
+  float* dmB;
+  float* dmC;
+
+  cudaMalloc((void**) &dmA, sizeof(float)*sizeA);
+  cudaMemcpy(dmA, matrixA, sizeof(float)*sizeA, cudaMemcpyHostToDevice);
+  cudaMalloc((void**) &dmB, sizeof(float)*sizeB);
+  cudaMemcpy(dmB, matrixB, sizeof(float)*sizeB, cudaMemcpyHostToDevice);
+  cudaMalloc((void**) &dmC, sizeof(float)*sizeC);
+  cudaMemcpy(dmC, matrixC, sizeof(float)*sizeC, cudaMemcpyHostToDevice);
 
   int spb = sizeC + (BLOCK_MAX_THREADS - 1);
   int numBlocks = spb / BLOCK_MAX_THREADS;
-  MatrixMultKernel<<<numBlocks, BLOCK_MAX_THREADS>>>(dmatrixA, dmatrixB, dmatrixC, rowsA, columnsB, columnsA);
-  cudaMemcpy(matrixC, dmatrixC, sizeof(float)*sizeC, cudaMemcpyDeviceToHost);
+  cudaEventRecord(cuda_start, 0);
+  MatrixMultKernel<<<numBlocks, BLOCK_MAX_THREADS>>>(dmA, dmB, dmaC, rowsA, columnsB, columnsA);
+  cudaEventRecord(cuda_stop, 0);
+  cudaMemcpy(matrixC, dmC, sizeof(float)*sizeC, cudaMemcpyDeviceToHost);
   cout<<"Printing result: \n";
   for(int i=0; i<sizeC; i++)
   {
@@ -115,54 +123,55 @@ int main()
   }
   cout<<"\n\n";
 
-  cudaFree(dmatrixA);
-  cudaFree(dmatrixB);
-  cudaFree(dmatrixC);
+  cudaFree(dmA);
+  cudaFree(dmB);
+  cudaFree(dmC);
 
+  float* mmA;
+  float* mmB;
+  float* mmC;
+  float* res = new float[sizeC];
 
-  //CUBLAS PART
-  //pointers for cublas
-  float* mmatrixA;
-  float* mmatrixB;
-  float* mmatrixC;
-
-  float* resultMatrix = new float[sizeC];
-
-  cudaMalloc((void**) &mmatrixA, sizeof(float)*sizeA);
+  cudaMalloc((void**) &mmA, sizeof(float)*sizeA);
   cudaMemcpy(mmatrixA, matrixA, sizeof(float)*sizeA, cudaMemcpyHostToDevice);
-
-  cudaMalloc((void**) &mmatrixB, sizeof(float)*sizeB);
+  cudaMalloc((void**) &mmB, sizeof(float)*sizeB);
   cudaMemcpy(mmatrixB, matrixB, sizeof(float)*sizeB, cudaMemcpyHostToDevice);
+  cudaMalloc((void**) &mmC, sizeof(float)*sizeC);
+  cudaMemcpy(mmatrixC, res, sizeof(float)*sizeC, cudaMemcpyHostToDevice);
 
-  cudaMalloc((void**) &mmatrixC, sizeof(float)*sizeC);
-  cudaMemcpy(mmatrixC, resultMatrix, sizeof(float)*sizeC, cudaMemcpyHostToDevice);
+  cudaEventRecord(cuda_start2, 0);
+  gpu_blas_mmul(mmA, mmB, mmC, columnsB, columnsA, columnsB);
+  cudaEventRecord(cuda_stop2, 0);
 
-   gpu_blas_mmul(mmatrixA, mmatrixB, mmatrixC, columnsB, columnsA, columnsB);
+  cudaMemcpy(res, mmC ,sizeof(float)*sizeC,cudaMemcpyDeviceToHost);
 
-   cudaMemcpy(resultMatrix, mmatrixC ,sizeof(float)*sizeC,cudaMemcpyDeviceToHost);
+  cout<<"Printing cuBLAS result: \n";
+  for(int i=0; i<sizeC; i++)
+  {
+    cout<<res[i]<<" ";
+  }
+  cout<<"\n";
 
-   cout<<"Printing cuBLAS result: \n";
-   for(int i=0; i<sizeC; i++)
-   {
-     cout<<resultMatrix[i]<<" ";
-   }
-   cout<<"\n";
+  float mse = 0.0;
+  for (int i = 0; i < sizeC; ++i) {
+    mse += pow(resultMatrix[i] - matrixC[i], 2);
+  }
+  mse /= sizeC;
 
-   float mse = 0.0;
-   for (int i = 0; i < sizeC; ++i) {
-     mse += pow(resultMatrix[i] - matrixC[i], 2);
-   }
-   mse /= sizeC;
+  cout << "cuBLAS MSE: " << mse << std::endl;
 
-   cout << "cuBLAS MSE: " << mse << std::endl;
+  cudaEventElapsedTime(&cuda_elapsed_time, cuda_start, cuda_stop);
+  cudaEventElapsedTime(&cuda_elapsed_time2, cuda_start2, cuda_stop2);
+  printf("Algorithm only cuda clock cycles for regular : %f\n", cuda_elapsed_time);
+  printf("Algorithm only cuda clock cycles for cublas : %f\n", cuda_elapsed_time2);
 
   free(matrixA);
   free(matrixB);
   free(matrixC);
-  free(resultMatrix);
+  free(res);
 
-  cudaFree(mmatrixA);
-  cudaFree(mmatrixB);
-  cudaFree(mmatrixC);
+  cudaFree(mmA);
+  cudaFree(mmB);
+  cudaFree(mmC);
   return 0;
 }
