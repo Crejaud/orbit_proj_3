@@ -133,11 +133,11 @@ int main()
   float* res = new float[sizeC];
 
   cudaMalloc((void**) &mmA, sizeof(float)*sizeA);
-  cudaMemcpy(mmatrixA, matrixA, sizeof(float)*sizeA, cudaMemcpyHostToDevice);
+  cudaMemcpy(mmA, matrixA, sizeof(float)*sizeA, cudaMemcpyHostToDevice);
   cudaMalloc((void**) &mmB, sizeof(float)*sizeB);
-  cudaMemcpy(mmatrixB, matrixB, sizeof(float)*sizeB, cudaMemcpyHostToDevice);
+  cudaMemcpy(mmB, matrixB, sizeof(float)*sizeB, cudaMemcpyHostToDevice);
   cudaMalloc((void**) &mmC, sizeof(float)*sizeC);
-  cudaMemcpy(mmatrixC, res, sizeof(float)*sizeC, cudaMemcpyHostToDevice);
+  cudaMemcpy(mmC, res, sizeof(float)*sizeC, cudaMemcpyHostToDevice);
 
   cudaEventRecord(cuda_start2, 0);
   gpu_blas_mmul(mmA, mmB, mmC, columnsB, columnsA, columnsB);
@@ -154,7 +154,7 @@ int main()
 
   float mse = 0.0;
   for (int i = 0; i < sizeC; ++i) {
-    mse += pow(resultMatrix[i] - matrixC[i], 2);
+    mse += pow(res[i] - matrixC[i], 2);
   }
   mse /= sizeC;
 
