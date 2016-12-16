@@ -53,7 +53,6 @@ void gpu_blas_mmul(const float *A, const float *B, float *C, const int m, const 
    const float bet = 0;
    const float *alpha = &alf;
    const float *beta = &bet;
-
    cublasHandle_t handle;
    cublasCreate(&handle);
    cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, m, n, k, alpha, B, lda, A, ldb, beta, C, ldc);
@@ -70,15 +69,13 @@ int main()
   cudaEventCreate(&cuda_start2);
   cudaEventCreate(&cuda_stop2);
 
-  int rowsA = 3;
-  int columnsA = 2;
+  int rowsA = 300;
+  int columnsA = 200;
   int sizeA = rowsA*columnsA;
-  int rowsB  = 2;
-  int columnsB = 4;
+  int rowsB  = 200;
+  int columnsB = 400;
   int sizeB = rowsB*columnsB;
   int sizeC = rowsA*columnsB;
-
-
 
   float* matrixA = new float[sizeA];
   float* matrixB = new float[sizeB];
@@ -145,7 +142,6 @@ int main()
 
   cudaMemcpy(res, mmC ,sizeof(float)*sizeC,cudaMemcpyDeviceToHost);
 
-  cout<<"Printing cuBLAS result: \n";
   for(int i=0; i<sizeC; i++)
   {
     cout<<res[i]<<" ";
@@ -154,11 +150,11 @@ int main()
 
   float mse = 0.0;
   for (int i = 0; i < sizeC; ++i) {
-    mse += pow(res[i] - matrixC[i], 2);
+    mse = mse + pow(res[i] - matrixC[i], 2);
   }
-  mse /= sizeC;
+  mse = mse / sizeC;
 
-  cout << "cuBLAS MSE: " << mse << std::endl;
+  cout << "MSE: " << mse << std::endl;
 
   cudaEventElapsedTime(&cuda_elapsed_time, cuda_start, cuda_stop);
   cudaEventElapsedTime(&cuda_elapsed_time2, cuda_start2, cuda_stop2);
