@@ -69,11 +69,11 @@ int main()
 {
   int rowsA = 3;
   int columnsA = 2;
-  int sizeA = rows1*columns1;
+  int sizeA = rowsA*columnsA;
   int rowsB  = 2;
   int columnsB = 4;
-  int sizeB = rows2*columns2;
-  int sizeC = rows1*columns2;
+  int sizeB = rowsB*columnsB;
+  int sizeC = rowsA*columnsC;
 
   float* matrixA = new float[sizeA];
   float* matrixB = new float[sizeB];
