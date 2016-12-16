@@ -10,13 +10,14 @@ short iterative_bfs(short **matrix, unsigned long long N, short target, bool **v
 short recursive_bfs(short **matrix, unsigned long long N, short target, bool **visited_matrix);
 short recursive_bfs_helper(short **matrix, unsigned long long N, short target, unsigned long long x, unsigned long long y, bool **visited_matrix);
 
-void kernel_bfs_wrapper(short *matrix, short *result, int *mtx, unsigned long long N, short target);
-__global__ void bfs_kernel(short *matrix, short *result, int *mtx, unsigned long long N, short target);
+void kernel_bfs_wrapper(short *matrix, int *found_idx, int *mtx, unsigned long long N, short target);
+__global__ void bfs_kernel(short *matrix, int *found_idx, int *mtx, unsigned long long N, short target);
 
 int main()
 {
   // default size is 100
   unsigned long long N = 100;
+  int *h_found_idx, *found_idx;
   short **seq_matrix,
   *h_matrix,
   *cuda_matrix,
@@ -41,6 +42,7 @@ int main()
   seq_matrix = (short**) malloc(N * sizeof(short*));
   visited_matrix = (bool**) malloc(N * sizeof(bool*));
   seq_result = (short*) malloc(sizeof(short));
+  h_found_idx = (int*) malloc(sizeof(int));
   h_matrix = (short*) malloc(N * N * sizeof(short));
   srand(time(0));
   // set matrix to random shortegers from 0 to 100
@@ -62,13 +64,15 @@ int main()
   //for (unsigned long long i = 0; i < N; i++) {
   //  cudaMalloc(&cuda_matrix[i], N * sizeof(short));
   //}
-  cudaMalloc((void**)&cuda_result, sizeof(short));
+  cudaMalloc((void**)&found_idx, sizeof(int));
+  //cudaMalloc((void**)&cuda_result, sizeof(short));
   cudaMalloc((void**)&mtx, sizeof(int));
   //cout << "cuda malloc good" << endl;
 
   // set values of cuda target to -1 (not found)
   // set values of mtx target to 0
-  cudaMemset(cuda_result, -1, sizeof(short));
+  cudaMemset(found_idx, 0, sizeof(int));
+  //cudaMemset(cuda_result, -1, sizeof(short));
   cudaMemset(mtx, 0, sizeof(short));
 
   // set up timing variables
@@ -87,21 +91,22 @@ int main()
   cudaEventRecord(cuda_start, 0);
 
   // START CUDA
-  kernel_bfs_wrapper(cuda_matrix, cuda_result, mtx, N, target);
+  kernel_bfs_wrapper(cuda_matrix, found_idx, mtx, N, target);
 
   // copy from device to host
   cudaEventRecord(cuda_stop, 0);
   cudaEventSynchronize(cuda_stop);
   cudaEventElapsedTime(&cuda_elapsed_time, cuda_start, cuda_stop);
   //cudaMemcpy2D(seq_result, sizeof(short)*N, cuda_result, pitch, sizeof(short)*N, N, cudaMemcpyDeviceToHost);
-  cudaMemcpy(seq_result, cuda_result, sizeof(short), cudaMemcpyDeviceToHost);
+  //cudaMemcpy(seq_result, cuda_result, sizeof(short), cudaMemcpyDeviceToHost);
+  cudaMemcpy(h_found_idx, found_idx, sizeof(int), cudaMemcpyDeviceToHost);
 
   // destroy timers
   cudaEventDestroy(cuda_start);
   cudaEventDestroy(cuda_stop);
 
   cout << "----------------------------------------------------------" << endl;
-  cout << "Found: " << *seq_result << endl;
+  cout << "Found: " << h_matrix[*h_found_idx] << endl;
   cout << "[CUDA] Elapsed time: " << cuda_elapsed_time << " clock cycles" << endl;
   cout << "----------------------------------------------------------" << endl;
 
@@ -162,9 +167,11 @@ int main()
   free(visited_matrix);
   free(h_matrix);
   free(seq_result);
+  free(h_found_idx);
   cudaFree(cuda_matrix);
   cudaFree(mtx);
-  cudaFree(cuda_result);
+  cudaFree(found_idx);
+  //cudaFree(cuda_result);
 
   return 0;
 }
@@ -243,18 +250,18 @@ short recursive_bfs_helper(short **matrix, unsigned long long N, short target, u
   return -1;
 }
 
-void kernel_bfs_wrapper(short *matrix, short *result, int *mtx, unsigned long long N, short target)
+void kernel_bfs_wrapper(short *matrix, int *found_idx, int *mtx, unsigned long long N, short target)
 {
   // 1 dimensional
   dim3 blockSize = (256);
   dim3 gridSize = ((N*N + (2048 - 1))/(2048));
-  bfs_kernel<<< gridSize, blockSize >>>(matrix, result, mtx, N, target);
+  bfs_kernel<<< gridSize, blockSize >>>(matrix, found_idx, mtx, N, target);
 }
 
-__global__ void bfs_kernel(short *matrix, short *result, int *mtx, unsigned long long N, short target)
+__global__ void bfs_kernel(short *matrix, int *found_idx, int *mtx, unsigned long long N, short target)
 {
-  unsigned long long idx = threadIdx.x + blockDim.x * blockIdx.x;
-  //unsigned long long idy = threadIdx.y + blockDim.y + blockIdx.y;
+  int idx = threadIdx.x + blockDim.x * blockIdx.x;
+  //unsigned long long idy = threadIdx.y + blockDim.y + blockIdx.y; 
 
   if (idx >= N*N) {
     return;
@@ -263,8 +270,15 @@ __global__ void bfs_kernel(short *matrix, short *result, int *mtx, unsigned long
   //short *row = (short*) ((char*) matrix + ;
   // found!!
   if (matrix[idx] == target) {
-    while(atomicCAS(mtx, 0, 1) != 0);
-    *result = matrix[idx];
-    atomicExch(mtx, 0);
+    //printf("%d\n", matrix[idx]);
+    //while(atomicCAS(mtx, 0, 1) != 0);
+    //printf("Set\n");
+    //*result = matrix[idx];
+    atomicMax(found_idx, idx);
+    //printf("found id: %d\n", *found_idx);
+    //printf("id: %d\n", idx);
+    //printf("Result: %d\n", *result);
+    //atomicExch(mtx, 0);
+    //printf("Keep going\n");
   }
 }
