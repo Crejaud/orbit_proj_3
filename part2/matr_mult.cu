@@ -30,8 +30,8 @@ MatrixMultKernel(float* d_A, float* d_B, float* d_C, int rowsA, int columnsB, in
   if(index  < size)
   {
     float dotProduct = 0;
-    int rowIndex = index / columnsB; //which row of A
-    int columnIndex = index % columnsB; //which column of B
+    int rowIndex = index / columnsB;
+    int columnIndex = index % columnsB;
     int rowIndexA = rowIndex * denom;
     for(int i=0; i<denom; i++)
     {
@@ -69,11 +69,11 @@ int main()
   cudaEventCreate(&cuda_start2);
   cudaEventCreate(&cuda_stop2);
 
-  int rowsA = 3000;
-  int columnsA = 2000;
+  int rowsA = 30000;
+  int columnsA = 200;
   int sizeA = rowsA*columnsA;
-  int rowsB  = 2000;
-  int columnsB = 4000;
+  int rowsB  = 20000;
+  int columnsB = 400;
   int sizeB = rowsB*columnsB;
   int sizeC = rowsA*columnsB;
 
