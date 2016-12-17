@@ -69,11 +69,11 @@ int main()
   cudaEventCreate(&cuda_start2);
   cudaEventCreate(&cuda_stop2);
 
-  int rowsA = 300;
-  int columnsA = 200;
+  int rowsA = 3000;
+  int columnsA = 2000;
   int sizeA = rowsA*columnsA;
-  int rowsB  = 200;
-  int columnsB = 400;
+  int rowsB  = 2000;
+  int columnsB = 4000;
   int sizeB = rowsB*columnsB;
   int sizeC = rowsA*columnsB;
 
