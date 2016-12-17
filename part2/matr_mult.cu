@@ -83,6 +83,7 @@ int main()
 
   createArrayWithRandomValues(matrixA, sizeA);
   createArrayWithRandomValues(matrixB, sizeB);
+  /* uncomment to see inputs
   cout<<"Matrix A: \n";
   for(int i=0; i<sizeA; i++)
   {
@@ -95,6 +96,7 @@ int main()
     cout<<matrixB[i]<<" ";
   }
   cout<<"\n";
+  */
 
   float* dmA;
   float* dmB;
@@ -113,12 +115,14 @@ int main()
   MatrixMultKernel<<<numBlocks, BLOCK_MAX_THREADS>>>(dmA, dmB, dmC, rowsA, columnsB, columnsA);
   cudaEventRecord(cuda_stop, 0);
   cudaMemcpy(matrixC, dmC, sizeof(float)*sizeC, cudaMemcpyDeviceToHost);
-  cout<<"Printing result: \n";
+
+  /*uncomment to check result
   for(int i=0; i<sizeC; i++)
   {
     cout<<matrixC[i]<<" ";
   }
   cout<<"\n\n";
+  */
 
   cudaFree(dmA);
   cudaFree(dmB);
@@ -142,11 +146,13 @@ int main()
 
   cudaMemcpy(res, mmC ,sizeof(float)*sizeC,cudaMemcpyDeviceToHost);
 
+  /* uncomment to check result
   for(int i=0; i<sizeC; i++)
   {
     cout<<res[i]<<" ";
   }
   cout<<"\n";
+  */
 
   float mse = 0.0;
   for (int i = 0; i < sizeC; ++i) {
