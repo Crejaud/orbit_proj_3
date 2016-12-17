@@ -1,3 +1,11 @@
+Group19
+
+Corentin (Corey) Rejaud
+Syed (Ali) Naqvi
+Shreyas Hirday
+
+-----README-----
+
 Parts 1-3 have makefiles, to compile simply run "make" inside the directory (part1, part2, part3).
 Then run the output executable that is generated, ie, ./OUTPUT_NAME
 
