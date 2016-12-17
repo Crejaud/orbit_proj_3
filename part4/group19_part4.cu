@@ -117,12 +117,13 @@ int main(){
 	cfile.open("Cdata.txt", std::ofstream::out | std::ofstream::app);
 
 	//inits and allocs
-	int *in, *dev_in, *dev_out, size, log2size, *dev_exc, *dev_orig;
+	int *in, *dev_in, *dev_out, size, log2size, *dev_exc, *dev_orig, *temp;
 	//powers of 2 only, 2^20 = 1,048,576
 	size=(int) pow(2,20);
 	log2size=(int)log2((float)size);
 	
 	in = (int*)malloc(size*sizeof(int));
+	temp = (int*)malloc(size*sizeof(int));
 	cudaMalloc(&dev_in, size*sizeof(int));
 	cudaMalloc(&dev_out, size*sizeof(int));
 	cudaMalloc(&dev_exc, size*sizeof(int));
@@ -162,8 +163,20 @@ int main(){
 	
 	//stop recording time after algorithm is complete	
 	cudaEventRecord(cuda_stop, 0);
+	
+	//print final duplicate item
+	cudaMemcpy(temp, dev_out, size*sizeof(int), cudaMemcpyDeviceToHost);
+	for(int ty=size-1; ty>=0; --ty)
+		{
+		if(temp[ty]==1)
+		{
+			printf("The final duplicate is : %d at index %d\n", in[ty], ty);
+			break;
+		}
+	}
 
 	cudaMemcpy(in, dev_in, size*sizeof(int), cudaMemcpyDeviceToHost);
+
 	//write results to file for array B
 	for(int q=0; q<size; ++q){
 		if(in[q]!=-1){
@@ -171,18 +184,18 @@ int main(){
 		}
 	}
 	cudaMemcpy(in, dev_orig, size*sizeof(int), cudaMemcpyDeviceToHost);
-
-	cudaEventElapsedTime(&cuda_elapsed_time, cuda_start, cuda_stop);
-	cudaEventElapsedTime(&cuda_time_real, cuda_real_start, cuda_stop);
-	
-	printf("Total cycles including memory allocation and memcopy\nTotal cuda clock cycles : %f\nAlgorithm only cuda clock cycles : %f\n", cuda_time_real, cuda_elapsed_time); 
-
-	//write results to file
+	//write results to file for C
 	for(int q=0; q<size; ++q){
 		if(in[q]!=-1){
 			cfile<<in[q]<<"\n";
 		}
 	}
+
+	//print time
+	cudaEventElapsedTime(&cuda_elapsed_time, cuda_start, cuda_stop);
+	cudaEventElapsedTime(&cuda_time_real, cuda_real_start, cuda_stop);
+	
+	printf("Total cycles including memory allocation and memcopy\nTotal cuda clock cycles : %f\nAlgorithm only cuda clock cycles : %f\n", cuda_time_real, cuda_elapsed_time); 
 
 
 }
