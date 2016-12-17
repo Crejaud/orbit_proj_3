@@ -1,6 +1,7 @@
-Parts 1-3 have makefiles, to compile simply run "make" and then run the output executable, ie, ./OUTPUT_NAME
+Parts 1-3 have makefiles, to compile simply run "make" inside the directory (part1, part2, part3).
+Then run the output executable that is generated, ie, ./OUTPUT_NAME
 
-For part 4, compile with nvcc
+For part 4, compile with nvcc from within the directory part4
 To compile and generate a file with output name OUTPUT_NAME.o run the following:
 nvcc group19_part4.cu -o OUTPUT_NAME.o
 
